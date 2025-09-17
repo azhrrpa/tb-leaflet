@@ -277,6 +277,28 @@
   </div>
 
   <script>
+    let startX = 0;
+    let isTipsContainer = false;
+
+    document.addEventListener('touchstart', function(e) {
+    startX = e.touches[0].clientX;
+    // cek apakah touch dimulai dari dalam tips-container
+    isTipsContainer = e.target.closest('.tips-container') !== null;
+    });
+
+    document.addEventListener('touchend', function(e) {
+    const endX = e.changedTouches[0].clientX;
+    const diff = startX - endX;
+
+    // kalau swipe terjadi di dalam tips-container, jangan pindah halaman
+    if (isTipsContainer) return;
+
+    if (Math.abs(diff) > 50) {
+        if (diff > 0) nextPage();
+        else prevPage();
+    }
+    });
+
     let currentPage = 1;
     const totalPages = 7;
 
@@ -378,14 +400,6 @@
       if(e.key==='ArrowRight') nextPage();
     });
 
-    // Touch navigation (swipe)
-    let startX=0;
-    document.addEventListener('touchstart', e=>{ startX = e.touches[0].clientX; }, {passive:true});
-    document.addEventListener('touchend', e=>{
-      const endX = e.changedTouches[0].clientX;
-      const diff = startX - endX;
-      if(Math.abs(diff)>50){ if(diff>0) nextPage(); else prevPage(); }
-    }, {passive:true});
   </script>
 </body>
 </html>
