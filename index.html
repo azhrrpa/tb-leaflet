@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Cegah TB Anak - Puskesmas Pauh</title>
+  <meta name="theme-color" content="#667eea"/>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{
+      font-family: Arial, sans-serif;
+      line-height:1.6;
+      background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+      min-height:100vh;
+    }
+    .leaflet-container{
+      max-width:400px;margin:20px auto;background:#fff;border-radius:20px;
+      overflow:hidden;box-shadow:0 20px 40px rgba(0,0,0,.2);position:relative
+    }
+    .page{display:none;padding:30px;min-height:600px;position:relative}
+    .page.active{display:block;animation:slideIn .5s ease-in-out}
+    @keyframes slideIn{from{opacity:0;transform:translateX(30px)}to{opacity:1;transform:translateX(0)}}
+    .header{text-align:center;margin-bottom:30px}
+    .logo{
+      width:80px;height:80px;background:linear-gradient(45deg,#ff6b6b,#ffa500);
+      border-radius:50%;margin:0 auto 15px;display:flex;align-items:center;justify-content:center;
+      font-size:30px;color:#fff;font-weight:bold
+    }
+    h1{color:#333;font-size:24px;margin-bottom:10px;text-align:center}
+    h2{color:#667eea;font-size:20px;margin-bottom:20px;text-align:center}
+    .subtitle{color:#666;font-size:14px;text-align:center;margin-bottom:20px}
+    .btn{
+      display:block;width:100%;padding:15px;background:linear-gradient(45deg,#667eea,#764ba2);
+      color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:bold;
+      cursor:pointer;transition:.3s;margin:10px 0;text-align:center;text-decoration:none
+    }
+    .btn:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(102,126,234,.4)}
+    .btn-emergency{background:linear-gradient(45deg,#ff4757,#ff3838);animation:pulse 2s infinite}
+    @keyframes pulse{0%{transform:scale(1)}50%{transform:scale(1.05)}100%{transform:scale(1)}}
+    .symptom-checklist{list-style:none;margin:20px 0}
+    .symptom-checklist li{
+      padding:15px;margin:10px 0;background:#f8f9ff;border-radius:10px;border-left:4px solid #667eea;
+      cursor:pointer;transition:.3s;position:relative
+    }
+    .symptom-checklist li:hover{background:#e8f0ff;transform:translateX(5px)}
+    .symptom-checklist li.checked{background:#ffe8e8;border-left-color:#ff4757}
+    .symptom-checklist li:before{content:"☐";font-size:20px;color:#667eea;margin-right:10px}
+    .symptom-checklist li.checked:before{content:"☑";color:#ff4757}
+    .tips-container{display:flex;overflow-x:auto;gap:15px;padding:20px 0;scroll-snap-type:x mandatory}
+    .tip-card{
+      min-width:200px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;
+      padding:20px;border-radius:15px;text-align:center;scroll-snap-align:center;flex-shrink:0
+    }
+    .tip-icon{font-size:40px;margin-bottom:15px}
+    .traffic-light{display:flex;justify-content:space-around;margin:30px 0}
+    .light{
+      width:80px;height:80px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+      font-size:30px;color:#fff;font-weight:bold;cursor:pointer;transition:.3s
+    }
+    .light.green{background:#2ed573}
+    .light.yellow{background:#ffa502}
+    .light.red{background:#ff4757}
+    .light:hover{transform:scale(1.1)}
+    .contact-info{background:#f8f9ff;padding:20px;border-radius:15px;margin:20px 0;text-align:center}
+    .contact-btn{
+      display:inline-block;margin:5px;padding:10px 20px;background:#25d366;color:#fff;text-decoration:none;
+      border-radius:25px;font-weight:bold
+    }
+    .navigation{
+      position:absolute;bottom:20px;left:50%;transform:translateX(-50%);display:flex;gap:10px
+    }
+    .nav-btn{
+      width:40px;height:40px;border-radius:50%;background:#667eea;color:#fff;border:none;cursor:pointer;font-size:16px
+    }
+    .nav-btn:disabled{background:#ccc;cursor:not-allowed}
+    .progress-bar{height:4px;background:#eee;margin-bottom:20px}
+    .progress-fill{height:100%;background:linear-gradient(90deg,#667eea,#764ba2);width:0%;transition:width .5s}
+    .share-buttons{display:flex;justify-content:center;gap:10px;margin:20px 0}
+    .share-btn{
+      width:40px;height:40px;border-radius:50%;border:none;cursor:pointer;font-size:16px;color:#fff
+    }
+    .share-whatsapp{background:#25d366}
+    .share-facebook{background:#3b5998}
+    .share-twitter{background:#1da1f2}
+    .quiz-container{margin:20px 0}
+    .quiz-option{padding:10px;margin:5px 0;background:#f8f9ff;border-radius:8px;cursor:pointer;transition:.3s}
+    .quiz-option:hover{background:#e8f0ff}
+    .quiz-option.correct{background:#d4edda;border-left:4px solid #28a745}
+    .quiz-option.wrong{background:#f8d7da;border-left:4px solid #dc3545}
+    @media (max-width:480px){
+      .leaflet-container{margin:10px;max-width:none}
+      .page{padding:20px}
+    }
+  </style>
+</head>
+<body>
+  <div class="leaflet-container" role="region" aria-label="Leaflet Digital Cegah TB Anak">
+    <!-- Progress Bar -->
+    <div class="progress-bar" aria-hidden="true"><div class="progress-fill" id="progressFill"></div></div>
+
+    <!-- Page 1: Cover -->
+    <div class="page active" id="page1" aria-labelledby="title1">
+      <div class="header">
+        <div class="logo" aria-hidden="true">TB</div>
+        <h1 id="title1">Cegah TB Anak</h1>
+        <div class="subtitle">Lindungi Masa Depan Buah Hati</div>
+        <p style="color:#666;font-size:12px;">Puskesmas Pauh • 2024</p>
+      </div>
+      <div style="text-align:center;margin:30px 0;">
+        <div style="font-size:60px;margin-bottom:20px;" aria-hidden="true">👶</div>
+        <p style="color:#666;margin-bottom:30px;">Panduan lengkap untuk orangtua dalam mencegah dan mengenali TB pada anak</p>
+      </div>
+      <button class="btn" onclick="nextPage()" aria-label="Mulai belajar">🚀 Mulai Belajar</button>
+      <div class="share-buttons" aria-label="Bagikan halaman ini">
+        <button class="share-btn share-whatsapp" onclick="shareWhatsApp()" aria-label="Bagikan via WhatsApp">📱</button>
+        <button class="share-btn share-facebook" onclick="shareFacebook()" aria-label="Bagikan ke Facebook">📘</button>
+        <button class="share-btn share-twitter" onclick="shareTwitter()" aria-label="Bagikan ke X atau Twitter">🐦</button>
+      </div>
+    </div>
+
+    <!-- Page 2: Apa itu TB Anak -->
+    <div class="page" id="page2" aria-labelledby="title2">
+      <h2 id="title2">Apa itu TB Anak? 🤔</h2>
+      <div style="text-align:center;margin:20px 0;">
+        <div style="font-size:50px;margin-bottom:15px;" aria-hidden="true">🦠</div>
+      </div>
+      <p style="margin-bottom:20px;font-size:16px;line-height:1.8;">
+        <strong>Tuberkulosis (TB) anak</strong> adalah penyakit infeksi yang disebabkan oleh bakteri
+        <em>Mycobacterium tuberculosis</em> yang menyerang paru-paru atau organ tubuh lainnya pada anak.
+      </p>
+      <div style="background:#fff3cd;padding:15px;border-radius:10px;margin:20px 0;">
+        <strong>💡 Tahukah Anda?</strong><br/>TB anak berbeda dengan TB dewasa. Gejala seringkali tidak jelas dan sulit dideteksi.
+      </div>
+      <div style="background:#d1ecf1;padding:15px;border-radius:10px;margin:20px 0;">
+        <strong>✅ Kabar Baik:</strong><br/>TB anak DAPAT DISEMBUHKAN jika dideteksi dan diobati dengan benar!
+      </div>
+      <button class="btn" onclick="nextPage()" aria-label="Lanjut ke gejala TB anak">Lanjut: Kenali Gejalanya ➡</button>
+    </div>
+
+    <!-- Page 3: Gejala TB Anak -->
+    <div class="page" id="page3" aria-labelledby="title3">
+      <h2 id="title3">Kenali Gejala TB Anak 🔍</h2>
+      <p style="margin-bottom:20px;">Centang gejala yang dialami anak Anda:</p>
+      <ul class="symptom-checklist" role="list">
+        <li onclick="toggleSymptom(this)" role="checkbox" aria-checked="false">🤧 Batuk terus-menerus &gt; 2 minggu</li>
+        <li onclick="toggleSymptom(this)" role="checkbox" aria-checked="false">🌡 Demam naik turun &gt; 2 minggu</li>
+        <li onclick="toggleSymptom(this)" role="checkbox" aria-checked="false">📉 Berat badan turun/sulit naik</li>
+        <li onclick="toggleSymptom(this)" role="checkbox" aria-checked="false">🍽 Nafsu makan menurun</li>
+        <li onclick="toggleSymptom(this)" role="checkbox" aria-checked="false">😴 Anak tampak lemas dan lesu</li>
+        <li onclick="toggleSymptom(this)" role="checkbox" aria-checked="false">💧 Berkeringat di malam hari</li>
+      </ul>
+      <div id="symptomAlert" style="background:#f8d7da;padding:15px;border-radius:10px;margin:20px 0;display:none;">
+        <strong>⚠ Perhatian!</strong><br/>Jika anak mengalami 3 atau lebih gejala, segera konsultasi ke dokter!
+      </div>
+      <button class="btn" onclick="nextPage()" aria-label="Lanjut ke cara penularan TB">Lanjut: Cara Penularan ➡</button>
+    </div>
+
+    <!-- Page 4: Cara Penularan -->
+    <div class="page" id="page4" aria-labelledby="title4">
+      <h2 id="title4">Bagaimana TB Menular? 💨</h2>
+      <div style="text-align:center;margin:30px 0;">
+        <div style="font-size:40px;margin-bottom:15px;" aria-hidden="true">😷➡👶</div>
+        <p style="font-size:18px;font-weight:bold;color:#ff4757;">Melalui Droplet (Percikan Dahak)</p>
+      </div>
+      <div style="background:#fff3cd;padding:20px;border-radius:15px;margin:20px 0;">
+        <h3>❌ HINDARI:</h3>
+        <ul style="margin-left:20px;margin-top:10px;">
+          <li>Kontak dekat dengan penderita TB aktif</li>
+          <li>Berada di ruangan pengap dengan penderita TB</li>
+          <li>Berbagi alat makan dengan penderita TB</li>
+        </ul>
+      </div>
+      <div style="background:#d4edda;padding:20px;border-radius:15px;margin:20px 0;">
+        <h3>✅ LAKUKAN:</h3>
+        <ul style="margin-left:20px;margin-top:10px;">
+          <li>Pastikan ventilasi rumah baik</li>
+          <li>Gunakan masker saat merawat penderita TB</li>
+          <li>Jaga jarak aman saat berbicara</li>
+        </ul>
+      </div>
+      <button class="btn" onclick="nextPage()" aria-label="Lanjut ke tips pencegahan">Lanjut: Tips Pencegahan ➡</button>
+    </div>
+
+    <!-- Page 5: Tips Pencegahan -->
+    <div class="page" id="page5" aria-labelledby="title5">
+      <h2 id="title5">Tips Pencegahan TB 🛡</h2>
+      <p style="text-align:center;margin-bottom:20px;">Geser untuk melihat tips pencegahan:</p>
+      <div class="tips-container" aria-label="Kartu tips pencegahan">
+        <div class="tip-card">
+          <div class="tip-icon" aria-hidden="true">💉</div>
+          <h3>Imunisasi BCG</h3>
+          <p>Berikan imunisasi BCG saat bayi untuk perlindungan dasar</p>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon" aria-hidden="true">🥗</div>
+          <h3>Nutrisi Sehat</h3>
+          <p>Berikan makanan bergizi untuk meningkatkan daya tahan tubuh</p>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon" aria-hidden="true">🏠</div>
+          <h3>Lingkungan Bersih</h3>
+          <p>Jaga kebersihan rumah dan sirkulasi udara yang baik</p>
+        </div>
+        <div class="tip-card">
+          <div class="tip-icon" aria-hidden="true">🚭</div>
+          <h3>Bebas Asap Rokok</h3>
+          <p>Jauhkan anak dari paparan asap rokok aktif maupun pasif</p>
+        </div>
+      </div>
+      <div class="quiz-container" aria-label="Mini kuis">
+        <h3>Mini Quiz: 🧠</h3>
+        <p>Kapan sebaiknya anak mendapat imunisasi BCG?</p>
+        <div class="quiz-option" onclick="selectQuiz(this,false)">A. Saat usia 1 tahun</div>
+        <div class="quiz-option" onclick="selectQuiz(this,true)">B. Saat bayi baru lahir</div>
+        <div class="quiz-option" onclick="selectQuiz(this,false)">C. Saat usia 5 tahun</div>
+      </div>
+      <button class="btn" onclick="nextPage()" aria-label="Lanjut ke kapan harus ke dokter">Lanjut: Kapan ke Dokter? ➡</button>
+    </div>
+
+    <!-- Page 6: Kapan ke Dokter -->
+    <div class="page" id="page6" aria-labelledby="title6">
+      <h2 id="title6">Kapan Harus ke Dokter? 🏥</h2>
+      <p style="text-align:center;margin-bottom:30px;">Sistem Traffic Light untuk Kondisi Anak:</p>
+      <div class="traffic-light" role="group" aria-label="Pilih kondisi lampu">
+        <div class="light green" onclick="showLightInfo('green')" role="button" aria-label="Hijau - Normal">✅</div>
+        <div class="light yellow" onclick="showLightInfo('yellow')" role="button" aria-label="Kuning - Waspada">⚠</div>
+        <div class="light red" onclick="showLightInfo('red')" role="button" aria-label="Merah - Segera ke Dokter">🚨</div>
+      </div>
+      <div id="lightInfo" style="background:#f8f9ff;padding:20px;border-radius:15px;margin:20px 0;min-height:100px;">
+        <p style="text-align:center;color:#666;">Klik salah satu lampu di atas untuk melihat penjelasan</p>
+      </div>
+      <button class="btn btn-emergency" onclick="callPuskesmas()" aria-label="Telepon Puskesmas sekarang">
+        📞 Hubungi Puskesmas Sekarang!
+      </button>
+      <button class="btn" onclick="nextPage()" aria-label="Lanjut ke kontak dan informasi">Lanjut: Kontak Info ➡</button>
+    </div>
+
+    <!-- Page 7: Kontak & Info -->
+    <div class="page" id="page7" aria-labelledby="title7">
+      <h2 id="title7">Kontak & Informasi 📞</h2>
+      <div class="contact-info">
+        <h3>🏥 Puskesmas Pauh</h3>
+        <p>Jl. Raya Pauh No. 123, Pekanbaru</p>
+        <p><strong>Jam Buka:</strong> 08:00 - 16:00 WIB</p>
+        <div style="margin:20px 0;">
+          <a href="tel:+6276112345" class="contact-btn" aria-label="Telepon Puskesmas Pauh">(0761) 12345</a>
+          <a href="https://wa.me/6281234567890" class="contact-btn" aria-label="Kirim WhatsApp ke Puskesmas Pauh">WhatsApp</a>
+        </div>
+      </div>
+      <div style="background:#d1ecf1;padding:15px;border-radius:10px;margin:20px 0;">
+        <h4>📱 Dapatkan Info Terbaru:</h4>
+        <p>Follow media sosial Puskesmas Pauh:</p>
+        <p>📘 @PuskesmasPauhOfficial<br/>📷 @puskesmas_pauh<br/>🐦 @PuskesmasPauh</p>
+      </div>
+      <button class="btn" onclick="restartLeaflet()" aria-label="Mulai dari halaman pertama lagi">🔄 Baca Ulang</button>
+      <div style="text-align:center;margin-top:30px;padding-top:20px;border-top:1px solid #eee;">
+        <p style="font-size:12px;color:#666;">© 2024 Puskesmas Pauh<br/>Leaflet Digital v1.0</p>
+      </div>
+    </div>
+
+    <!-- Navigation -->
+    <div class="navigation" aria-label="Navigasi halaman">
+      <button class="nav-btn" id="prevBtn" onclick="prevPage()" disabled aria-label="Halaman sebelumnya">‹</button>
+      <span id="pageIndicator" style="color:#666;margin:0 15px;" aria-live="polite">1 / 7</span>
+      <button class="nav-btn" id="nextBtn" onclick="nextPage()" aria-label="Halaman berikutnya">›</button>
+    </div>
+  </div>
+
+  <script>
+    let currentPage = 1;
+    const totalPages = 7;
+
+    function updateProgress(){
+      const progress = (currentPage/totalPages)*100;
+      document.getElementById('progressFill').style.width = progress + '%';
+    }
+    function updateNavigation(){
+      document.getElementById('prevBtn').disabled = currentPage===1;
+      document.getElementById('nextBtn').disabled = currentPage===totalPages;
+      document.getElementById('pageIndicator').textContent = currentPage + ' / ' + totalPages;
+      updateProgress();
+      // bookmark: simpan halaman terakhir
+      try{ localStorage.setItem('tb_leaflet_last_page', String(currentPage)); }catch(e){}
+    }
+    function showPage(pageNum){
+      document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+      const target = document.getElementById('page'+pageNum);
+      if(!target) return;
+      target.classList.add('active');
+      currentPage = pageNum;
+      updateNavigation();
+    }
+    function nextPage(){ if(currentPage<totalPages){ showPage(currentPage+1); } }
+    function prevPage(){ if(currentPage>1){ showPage(currentPage-1); } }
+    function restartLeaflet(){ showPage(1); }
+
+    function toggleSymptom(el){
+      el.classList.toggle('checked');
+      // aksesibilitas: toggle aria-checked
+      const checked = el.classList.contains('checked');
+      el.setAttribute('aria-checked', checked ? 'true':'false');
+      const count = document.querySelectorAll('.symptom-checklist li.checked').length;
+      document.getElementById('symptomAlert').style.display = count>=3 ? 'block':'none';
+    }
+
+    function showLightInfo(color){
+      const info = document.getElementById('lightInfo');
+      let content = '';
+      switch(color){
+        case 'green':
+          content = '<h4 style="color:#2ed573;">🟢 HIJAU - Normal</h4><p>Anak sehat, tidak ada gejala yang mengkhawatirkan. Tetap jaga pola hidup sehat dan kontrol rutin.</p>';
+          break;
+        case 'yellow':
+          content = '<h4 style="color:#ffa502;">🟡 KUNING - Waspada</h4><p>Ada 1-2 gejala ringan. Pantau kondisi anak selama 3-5 hari. Jika memburuk, segera konsultasi dokter.</p>';
+          break;
+        case 'red':
+          content = '<h4 style="color:#ff4757;">🔴 MERAH - Segera ke Dokter!</h4><p>Ada 3 atau lebih gejala TB, atau gejala berat. Segera bawa anak ke puskesmas atau rumah sakit.</p>';
+          break;
+      }
+      info.innerHTML = content;
+    }
+
+    function selectQuiz(el,isCorrect){
+      document.querySelectorAll('.quiz-option').forEach(o=>o.classList.remove('correct','wrong'));
+      if(isCorrect){
+        el.classList.add('correct');
+        setTimeout(()=>{ alert('✅ Benar! Imunisasi BCG sebaiknya diberikan saat bayi baru lahir untuk perlindungan optimal.'); },300);
+      }else{
+        el.classList.add('wrong');
+        setTimeout(()=>{ alert('❌ Kurang tepat. Imunisasi BCG sebaiknya diberikan saat bayi baru lahir ya!'); },300);
+      }
+    }
+
+    function callPuskesmas(){
+      if(confirm('Apakah Anda ingin menghubungi Puskesmas Pauh sekarang?')){
+        window.open('tel:+6276112345');
+      }
+    }
+
+    function shareWhatsApp(){
+      const text = 'Pelajari cara mencegah TB Anak dengan leaflet digital dari Puskesmas Pauh: ';
+      const url = window.location.href;
+      window.open('https://wa.me/?text='+encodeURIComponent(text+url));
+    }
+    function shareFacebook(){
+      const url = window.location.href;
+      window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(url));
+    }
+    function shareTwitter(){
+      const text = 'Cegah TB Anak dengan panduan dari Puskesmas Pauh';
+      const url = window.location.href;
+      window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(text)+'&url='+encodeURIComponent(url));
+    }
+
+    // Inisialisasi
+    (function init(){
+      // bookmark: coba muat halaman terakhir
+      try{
+        const saved = parseInt(localStorage.getItem('tb_leaflet_last_page')||'1',10);
+        if(saved>=1 && saved<=totalPages){ currentPage = saved; }
+      }catch(e){}
+      showPage(currentPage);
+    })();
+
+    // Keyboard navigation
+    document.addEventListener('keydown', function(e){
+      if(e.key==='ArrowLeft') prevPage();
+      if(e.key==='ArrowRight') nextPage();
+    });
+
+    // Touch navigation (swipe)
+    let startX=0;
+    document.addEventListener('touchstart', e=>{ startX = e.touches[0].clientX; }, {passive:true});
+    document.addEventListener('touchend', e=>{
+      const endX = e.changedTouches[0].clientX;
+      const diff = startX - endX;
+      if(Math.abs(diff)>50){ if(diff>0) nextPage(); else prevPage(); }
+    }, {passive:true});
+  </script>
+</body>
+</html>
